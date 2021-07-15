@@ -1,0 +1,7 @@
+Limit
+    -> Nested Loop
+        -> Index Scan using play_history_user_desc_idx on play_history ph
+            Index Cond: (user_id = 1001)
+        -> Index Scan using track_pkey on track
+            Index Cond: (id = ph.track_id)
+            Filter: active

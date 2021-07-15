@@ -1,0 +1,99 @@
+                                                                                                   QUERY PLAN                                                                                                   
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=904628.36..904628.38 rows=5 width=105) (actual time=14703.010..14751.759 rows=5 loops=1)
+   Output: track.id, track.title, track.length, track.album_id, (string_agg(DISTINCT (album.cover_photo)::text, ','::text)), (json_object_agg(DISTINCT artist.id, artist.name)), (count(DISTINCT ph.id))
+   Buffers: shared hit=1886672 read=228206, temp read=20802 written=21087
+   ->  Sort  (cost=904628.36..904930.50 rows=120854 width=105) (actual time=14391.068..14439.816 rows=5 loops=1)
+         Output: track.id, track.title, track.length, track.album_id, (string_agg(DISTINCT (album.cover_photo)::text, ','::text)), (json_object_agg(DISTINCT artist.id, artist.name)), (count(DISTINCT ph.id))
+         Sort Key: (count(DISTINCT ph.id)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=1886672 read=228206, temp read=20802 written=21087
+         ->  GroupAggregate  (cost=899162.94..902621.02 rows=120854 width=105) (actual time=13802.070..14400.921 rows=126388 loops=1)
+               Output: track.id, track.title, track.length, track.album_id, string_agg(DISTINCT (album.cover_photo)::text, ','::text), json_object_agg(DISTINCT artist.id, artist.name), count(DISTINCT ph.id)
+               Group Key: track.id
+               Buffers: shared hit=1886672 read=228206, temp read=20802 written=21087
+               ->  Sort  (cost=899162.94..899491.99 rows=131622 width=102) (actual time=13802.019..13892.741 rows=161040 loops=1)
+                     Output: track.id, track.title, track.length, track.album_id, album.cover_photo, artist.id, artist.name, ph.id
+                     Sort Key: track.id
+                     Sort Method: external merge  Disk: 17976kB
+                     Buffers: shared hit=1886672 read=228206, temp read=20802 written=21087
+                     ->  Gather  (cost=115276.29..883754.24 rows=131622 width=102) (actual time=12255.856..13740.798 rows=161040 loops=1)
+                           Output: track.id, track.title, track.length, track.album_id, album.cover_photo, artist.id, artist.name, ph.id
+                           Workers Planned: 1
+                           Workers Launched: 1
+                           JIT for worker 0:
+                             Functions: 34
+                             Options: Inlining true, Optimization true, Expressions true, Deforming true
+                             Timing: Generation 2.585 ms, Inlining 56.212 ms, Optimization 122.356 ms, Emission 77.518 ms, Total 258.671 ms
+                           Buffers: shared hit=1886672 read=228206, temp read=18555 written=18836
+                           ->  Nested Loop  (cost=114276.29..869592.04 rows=77425 width=102) (actual time=12227.286..13637.377 rows=80520 loops=2)
+                                 Output: track.id, track.title, track.length, track.album_id, album.cover_photo, artist.id, artist.name, ph.id
+                                 Inner Unique: true
+                                 Buffers: shared hit=1886672 read=228206, temp read=18555 written=18836
+                                 Worker 0: actual time=12199.523..13627.987 rows=77943 loops=1
+                                   Buffers: shared hit=909987 read=114599, temp read=8851 written=7412
+                                 ->  Nested Loop  (cost=114275.86..835052.04 rows=77425 width=88) (actual time=12227.262..13315.915 rows=80520 loops=2)
+                                       Output: track.id, track.title, track.length, track.album_id, album.cover_photo, ta.artist_id, ph.id
+                                       Buffers: shared hit=1242511 read=228206, temp read=18555 written=18836
+                                       Worker 0: actual time=12199.490..13317.456 rows=77943 loops=1
+                                         Buffers: shared hit=598214 read=114599, temp read=8851 written=7412
+                                       ->  Nested Loop  (cost=114275.43..661293.69 rows=71091 width=84) (actual time=12227.234..12880.723 rows=75529 loops=2)
+                                             Output: track.id, track.title, track.length, track.album_id, album.cover_photo, ph.id
+                                             Inner Unique: true
+                                             Buffers: shared hit=638149 read=228206, temp read=18555 written=18836
+                                             Worker 0: actual time=12199.447..12847.466 rows=73122 loops=1
+                                               Buffers: shared hit=305659 read=114599, temp read=8851 written=7412
+                                             ->  Parallel Hash Left Join  (cost=114275.00..605331.23 rows=71091 width=37) (actual time=12227.179..12531.088 rows=75616 loops=2)
+                                                   Output: track.id, track.title, track.length, track.album_id, ph.id
+                                                   Hash Cond: (track.id = ph.track_id)
+                                                   Buffers: shared hit=33391 read=228206, temp read=18555 written=18836
+                                                   Worker 0: actual time=12199.367..12492.309 rows=73209 loops=1
+                                                     Buffers: shared hit=12909 read=114599, temp read=8851 written=7412
+                                                   ->  Parallel Seq Scan on musicstreamer.track  (cost=0.00..477154.05 rows=71091 width=33) (actual time=0.335..11411.627 rows=63330 loops=2)
+                                                         Output: track.id, track.title, track.length, track.album_id
+                                                         Filter: (track.active AND ((track.title)::text ~~* (('%'::text || $1) || '%'::text)))
+                                                         Rows Removed by Filter: 11921414
+                                                         Buffers: shared hit=130 read=228206
+                                                         Worker 0: actual time=0.198..11412.111 rows=63628 loops=1
+                                                           Buffers: shared hit=68 read=114599
+                                                   ->  Parallel Hash  (cost=63923.22..63923.22 rows=3069022 width=8) (actual time=739.267..739.268 rows=2607292 loops=2)
+                                                         Output: ph.id, ph.track_id
+                                                         Buckets: 262144  Batches: 64  Memory Usage: 5312kB
+                                                         Buffers: shared hit=33233, temp written=17812
+                                                         Worker 0: actual time=731.496..731.497 rows=2010543 loops=1
+                                                           Buffers: shared hit=12813, temp written=6900
+                                                         ->  Parallel Seq Scan on musicstreamer.play_history ph  (cost=0.00..63923.22 rows=3069022 width=8) (actual time=128.271..363.265 rows=2607292 loops=2)
+                                                               Output: ph.id, ph.track_id
+                                                               Buffers: shared hit=33233
+                                                               Worker 0: actual time=256.504..442.171 rows=2010543 loops=1
+                                                                 Buffers: shared hit=12813
+                                             ->  Index Scan using album_pkey on musicstreamer.album  (cost=0.43..0.79 rows=1 width=51) (actual time=0.004..0.004 rows=1 loops=151233)
+                                                   Output: album.id, album.title, album.cover_photo, album.year, album.legal_notice, album.date_added, album.active
+                                                   Index Cond: (album.id = track.album_id)
+                                                   Filter: album.active
+                                                   Buffers: shared hit=604758
+                                                   Worker 0: actual time=0.004..0.004 rows=1 loops=73209
+                                                     Buffers: shared hit=292750
+                                       ->  Index Scan using track_artist_pkey on musicstreamer.track_artist ta  (cost=0.44..2.41 rows=3 width=8) (actual time=0.005..0.005 rows=1 loops=151058)
+                                             Output: ta.track_id, ta.artist_id, ta.is_featured
+                                             Index Cond: (ta.track_id = track.id)
+                                             Filter: (NOT ta.is_featured)
+                                             Rows Removed by Filter: 0
+                                             Buffers: shared hit=604362
+                                             Worker 0: actual time=0.006..0.006 rows=1 loops=73122
+                                               Buffers: shared hit=292555
+                                 ->  Index Scan using artist_pkey on musicstreamer.artist  (cost=0.43..0.45 rows=1 width=18) (actual time=0.004..0.004 rows=1 loops=161040)
+                                       Output: artist.id, artist.name
+                                       Index Cond: (artist.id = ta.artist_id)
+                                       Filter: artist.active
+                                       Buffers: shared hit=644161
+                                       Worker 0: actual time=0.004..0.004 rows=1 loops=77943
+                                         Buffers: shared hit=311773
+ Planning Time: 0.018 ms
+ JIT:
+   Functions: 76
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 6.216 ms, Inlining 73.129 ms, Optimization 304.067 ms, Emission 190.399 ms, Total 573.812 ms
+ Execution Time: 14758.680 ms
+(95 rows)
+

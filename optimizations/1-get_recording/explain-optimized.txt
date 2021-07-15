@@ -1,0 +1,14 @@
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.57..0.63 rows=1 width=22) (actual time=0.025..0.026 rows=1 loops=1)
+   Output: file_uri, track_id, quality_level
+   Buffers: shared hit=5
+   ->  Index Only Scan using u_recording_locator on musicstreamer.recording  (cost=0.57..2.17 rows=25 width=22) (actual time=0.024..0.025 rows=1 loops=1)
+         Output: file_uri, track_id, quality_level
+         Index Cond: ((recording.track_id = $1) AND (recording.quality_level <= $2))
+         Heap Fetches: 0
+         Buffers: shared hit=5
+ Planning Time: 0.024 ms
+ Execution Time: 0.048 ms
+(10 rows)
+

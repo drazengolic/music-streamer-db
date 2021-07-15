@@ -1,0 +1,76 @@
+                                                                                          QUERY PLAN                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=541128.30..541128.31 rows=5 width=74) (actual time=5813.770..5879.309 rows=5 loops=1)
+   Output: a.id, a.name, a.cover_photo, (count(DISTINCT ph.id))
+   Buffers: shared hit=54516 read=144533, temp read=33219 written=33616
+   ->  Sort  (cost=541128.30..541148.45 rows=8063 width=74) (actual time=5584.805..5650.344 rows=5 loops=1)
+         Output: a.id, a.name, a.cover_photo, (count(DISTINCT ph.id))
+         Sort Key: (count(DISTINCT ph.id)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=54516 read=144533, temp read=33219 written=33616
+         ->  GroupAggregate  (cost=539907.51..540994.37 rows=8063 width=74) (actual time=5334.168..5645.462 rows=21496 loops=1)
+               Output: a.id, a.name, a.cover_photo, count(DISTINCT ph.id)
+               Group Key: a.id
+               Buffers: shared hit=54516 read=144533, temp read=33219 written=33616
+               ->  Sort  (cost=539907.51..540242.92 rows=134164 width=70) (actual time=5333.872..5537.653 rows=790066 loops=1)
+                     Output: a.id, a.name, a.cover_photo, ph.id
+                     Sort Key: a.id
+                     Sort Method: external merge  Disk: 60968kB
+                     Buffers: shared hit=54516 read=144533, temp read=33219 written=33616
+                     ->  Gather  (cost=152656.94..525256.36 rows=134164 width=70) (actual time=4477.838..5052.810 rows=790066 loops=1)
+                           Output: a.id, a.name, a.cover_photo, ph.id
+                           Workers Planned: 1
+                           Workers Launched: 1
+                           JIT for worker 0:
+                             Functions: 21
+                             Options: Inlining true, Optimization true, Expressions true, Deforming true
+                             Timing: Generation 1.550 ms, Inlining 62.402 ms, Optimization 99.746 ms, Emission 55.801 ms, Total 219.499 ms
+                           Buffers: shared hit=54516 read=144533, temp read=25598 written=25976
+                           ->  Parallel Hash Left Join  (cost=151656.94..510839.96 rows=78920 width=70) (actual time=4462.600..4839.491 rows=395033 loops=2)
+                                 Output: a.id, a.name, a.cover_photo, ph.id
+                                 Hash Cond: (ta.track_id = ph.track_id)
+                                 Buffers: shared hit=54516 read=144533, temp read=25598 written=25976
+                                 Worker 0: actual time=4447.886..4835.273 rows=401992 loops=1
+                                   Buffers: shared hit=24116 read=71142, temp read=12930 written=11244
+                                 ->  Parallel Hash Join  (cost=37381.94..381706.51 rows=78920 width=70) (actual time=671.795..3562.975 rows=345510 loops=2)
+                                       Output: a.id, a.name, a.cover_photo, ta.track_id
+                                       Inner Unique: true
+                                       Hash Cond: (ta.artist_id = a.id)
+                                       Buffers: shared hit=21236 read=144533
+                                       Worker 0: actual time=671.814..3563.958 rows=340885 loops=1
+                                         Buffers: shared hit=10721 read=71142
+                                       ->  Parallel Seq Scan on musicstreamer.track_artist ta  (cost=0.00..302890.53 rows=15784353 width=8) (actual time=0.213..1234.695 rows=13315642 loops=2)
+                                             Output: ta.track_id, ta.artist_id, ta.is_featured
+                                             Buffers: shared hit=514 read=144533
+                                             Worker 0: actual time=0.394..1230.050 rows=13108951 loops=1
+                                               Buffers: shared hit=251 read=71142
+                                       ->  Parallel Hash  (cost=37322.65..37322.65 rows=4743 width=66) (actual time=671.362..671.363 rows=20798 loops=2)
+                                             Output: a.id, a.name, a.cover_photo
+                                             Buckets: 65536 (originally 8192)  Batches: 1 (originally 1)  Memory Usage: 5216kB
+                                             Buffers: shared hit=20722
+                                             Worker 0: actual time=671.383..671.384 rows=20972 loops=1
+                                               Buffers: shared hit=10470
+                                             ->  Parallel Seq Scan on musicstreamer.artist a  (cost=0.00..37322.65 rows=4743 width=66) (actual time=0.061..644.991 rows=20798 loops=2)
+                                                   Output: a.id, a.name, a.cover_photo
+                                                   Filter: (a.active AND ((a.name)::text ~~* (('%'::text || $1) || '%'::text)))
+                                                   Rows Removed by Filter: 785351
+                                                   Buffers: shared hit=20722
+                                                   Worker 0: actual time=0.055..642.470 rows=20972 loops=1
+                                                     Buffers: shared hit=10470
+                                 ->  Parallel Hash  (cost=63923.22..63923.22 rows=3069022 width=8) (actual time=739.706..739.707 rows=2607292 loops=2)
+                                       Output: ph.id, ph.track_id
+                                       Buckets: 262144  Batches: 64  Memory Usage: 5312kB
+                                       Buffers: shared hit=33233, temp written=17812
+                                       Worker 0: actual time=732.103..732.104 rows=2094519 loops=1
+                                         Buffers: shared hit=13348, temp written=7180
+                                       ->  Parallel Seq Scan on musicstreamer.play_history ph  (cost=0.00..63923.22 rows=3069022 width=8) (actual time=109.127..352.205 rows=2607292 loops=2)
+                                             Output: ph.id, ph.track_id
+                                             Buffers: shared hit=33233
+                                             Worker 0: actual time=218.212..419.524 rows=2094519 loops=1
+                                               Buffers: shared hit=13348
+ Planning Time: 0.017 ms
+ JIT:
+   Functions: 48
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 4.353 ms, Inlining 75.154 ms, Optimization 239.320 ms, Emission 132.260 ms, Total 451.088 ms
+ Execution Time: 5891.891 ms

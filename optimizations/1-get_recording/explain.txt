@@ -1,0 +1,54 @@
+                                                                            QUERY PLAN                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1416969.16..1416969.28 rows=1 width=22) (actual time=3346.207..3358.087 rows=1 loops=1)
+   Output: r.id, r.file_uri, rt.quality_level
+   Buffers: shared hit=940 read=709923
+   ->  Gather Merge  (cost=1416968.11..1416969.38 rows=11 width=22) (actual time=3201.845..3213.722 rows=1 loops=1)
+         Output: r.id, r.file_uri, rt.quality_level
+         Workers Planned: 1
+         Params Evaluated: $0
+         Workers Launched: 1
+         Buffers: shared hit=940 read=709923
+         ->  Sort  (cost=1415968.10..1415968.13 rows=11 width=22) (actual time=3191.171..3191.173 rows=0 loops=2)
+               Output: r.id, r.file_uri, rt.quality_level
+               Sort Key: rt.quality_level DESC
+               Sort Method: quicksort  Memory: 25kB
+               Worker 0:  Sort Method: top-N heapsort  Memory: 25kB
+               Buffers: shared hit=939 read=709923
+               Worker 0: actual time=3181.879..3181.882 rows=1 loops=1
+                 Buffers: shared hit=492 read=342674
+               ->  Hash Join  (cost=1.06..1415968.05 rows=11 width=22) (actual time=2171.270..3191.119 rows=2 loops=2)
+                     Output: r.id, r.file_uri, rt.quality_level
+                     Inner Unique: true
+                     Hash Cond: (r.recording_type_id = rt.id)
+                     Buffers: shared hit=892 read=709923
+                     Worker 0: actual time=1142.083..3181.780 rows=3 loops=1
+                       Buffers: shared hit=445 read=342674
+                     ->  Parallel Seq Scan on musicstreamer.recording r  (cost=0.00..1415966.76 rows=42 width=24) (actual time=2171.172..3191.019 rows=2 loops=2)
+                           Output: r.id, r.recording_type_id, r.file_uri, r.track_id
+                           Filter: (r.track_id = $1)
+                           Rows Removed by Filter: 47929006
+                           Buffers: shared hit=864 read=709923
+                           Worker 0: actual time=1141.890..3181.582 rows=4 loops=1
+                             Buffers: shared hit=417 read=342674
+                     ->  Hash  (cost=1.05..1.05 rows=1 width=6) (actual time=0.065..0.066 rows=3 loops=1)
+                           Output: rt.quality_level, rt.id
+                           Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                           Buffers: shared hit=1
+                           Worker 0: actual time=0.065..0.066 rows=3 loops=1
+                             Buffers: shared hit=1
+                           ->  Seq Scan on musicstreamer.recording_type rt  (cost=0.00..1.05 rows=1 width=6) (actual time=0.056..0.058 rows=3 loops=1)
+                                 Output: rt.quality_level, rt.id
+                                 Filter: (rt.quality_level <= $0)
+                                 Rows Removed by Filter: 1
+                                 Buffers: shared hit=1
+                                 Worker 0: actual time=0.056..0.058 rows=3 loops=1
+                                   Buffers: shared hit=1
+ Planning Time: 0.077 ms
+ JIT:
+   Functions: 39
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 3.371 ms, Inlining 59.447 ms, Optimization 178.652 ms, Emission 81.511 ms, Total 322.982 ms
+ Execution Time: 3360.130 ms
+(56 rows)
+

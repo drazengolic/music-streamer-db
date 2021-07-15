@@ -1,0 +1,4 @@
+Limit
+    -> Index Scan using artist_name_gist_idx on artist
+        Index Cond: ((name)::text ~~* (('%'::text || $1) || '%'::text))
+        Order By: (total_play_count <-> 5000)
